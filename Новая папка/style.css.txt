@@ -1,0 +1,64 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+#controls {
+  background: #f8f8f8;
+  padding: 8px;
+  font-size: 14px;
+  border-bottom: 1px solid #ccc;
+}
+.filter-group {
+  margin-bottom: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-group label {
+  margin-right: 10px;
+}
+#main {
+  display: flex;
+  height: calc(100vh - 60px); /* высота экрана минус панель фильтров */
+}
+#map {
+  flex: 2;
+  height: 100%;
+}
+#sidebar {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background: #fcfcfc;
+  border-left: 1px solid #ccc;
+}
+#charts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#charts svg {
+  margin: 10px 0;
+  font-size: 12px;
+}
+/* Стили для графиков */
+.bar {
+  fill: steelblue;
+}
+.bar:hover {
+  fill: orange;
+}
+.axis text {
+  fill: #333;
+  font-size: 10px;
+}
+/* Подписи осей (можно при необходимости) */
+.axis-label {
+  font-weight: bold;
+  text-anchor: middle;
+}
+/* Настройки Leaflet-карты */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}

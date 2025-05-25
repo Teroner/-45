@@ -1,0 +1,237 @@
+// Инициализация карты Leaflet
+var map = L.map('map', {
+  minZoom: 7, maxZoom: 10
+}).setView([52.7, 41.6], 7);  // центральная точка Тамбовской обл.
+  
+// Добавляем подложку – изображение карты области (без подключения внешних тайлов)
+var bounds = [[51.53, 39.87], [53.87, 43.32]]; // границы области (юго-запад и северо-восток в координатах)
+L.imageOverlay('Outline_Map_of_Tambov_Oblast.png', bounds).addTo(map);
+map.fitBounds(bounds);
+
+// Настраиваем отображение маркеров
+var markersLayer = L.layerGroup().addTo(map);
+
+// Функция обновления маркеров на карте согласно текущей фильтрации
+function updateMap(filteredData) {
+  markersLayer.clearLayers();
+  filteredData.forEach(person => {
+    // Добавляем маркер
+    var marker = L.marker([person.lat, person.lon]);
+    // Формируем содержимое всплывающего окна
+    var popupContent = `<b>${person.name}</b>`; 
+    if (person.rank) popupContent += ` (${person.rank})`;
+    popupContent += `<br/>${person.years}`;
+    if (person.arrest_date) popupContent += `<br/><b>Арест:</b> ${person.arrest_date}`;
+    if (person.article) popupContent += `<br/><b>Статья:</b> ${person.article}`;
+    if (person.sentence) popupContent += `<br/><b>Приговор:</b> ${person.sentence}`;
+    if (person.service_place) popupContent += `<br/><b>Место служения:</b> ${person.service_place}`;
+    if (person.repression_place) popupContent += `<br/><b>Место репрессии:</b> ${person.repression_place}`;
+    marker.bindPopup(popupContent);
+    marker.addTo(markersLayer);
+  });
+}
+
+// Функции отрисовки графиков на основе текущих данных
+function drawSentenceChart(data) {
+  // Подсчитываем количество по типам приговоров
+  var counts = { 'Расстрел': 0, 'Лагерь': 0, 'Прочие': 0 };
+  data.forEach(p => {
+    counts[p.sentence_type] = (counts[p.sentence_type] || 0) + 1;
+  });
+  var categories = Object.keys(counts);
+  var maxVal = Math.max(...Object.values(counts));
+  var svg = document.getElementById('sentenceChart');
+  var width = svg.getAttribute('width'), height = svg.getAttribute('height');
+  var barWidth = (width - 40) / categories.length;
+  // Очистка SVG
+  svg.innerHTML = '';
+  // Рисуем ось Y (число)
+  var scaleY = height / (maxVal + 5);
+  categories.forEach((cat, i) => {
+    var val = counts[cat];
+    var barHeight = val * scaleY;
+    // прямоугольник
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', 20 + i * barWidth + 10);
+    rect.setAttribute('y', height - barHeight - 20);
+    rect.setAttribute('width', barWidth - 20);
+    rect.setAttribute('height', barHeight);
+    rect.setAttribute('class', 'bar');
+    svg.appendChild(rect);
+    // метка числовая над столбцом
+    var textVal = document.createElementNS('http://www.w3.org/2000/svg','text');
+    textVal.setAttribute('x', 20 + i * barWidth + barWidth/2);
+    textVal.setAttribute('y', height - barHeight - 25);
+    textVal.setAttribute('text-anchor', 'middle');
+    textVal.textContent = val;
+    svg.appendChild(textVal);
+    // подпись категории под столбцом
+    var textCat = document.createElementNS('http://www.w3.org/2000/svg','text');
+    textCat.setAttribute('x', 20 + i * barWidth + barWidth/2);
+    textCat.setAttribute('y', height - 5);
+    textCat.setAttribute('text-anchor', 'middle');
+    textCat.textContent = cat;
+    svg.appendChild(textCat);
+  });
+}
+
+function drawTimelineChart(data) {
+  // Подсчитываем количество по годам ареста
+  var yearCounts = {};
+  data.forEach(p => {
+    var yr = p.arrest_year;
+    if (!yr) return;
+    yearCounts[yr] = (yearCounts[yr] || 0) + 1;
+  });
+  var years = [];
+  for (var y = +yearStart.value; y <= +yearEnd.value; y++) {
+    years.push(y);
+    if (!yearCounts[y]) yearCounts[y] = 0;
+  }
+  var maxVal = Math.max(...Object.values(yearCounts));
+  var svg = document.getElementById('timelineChart');
+  var width = svg.getAttribute('width'), height = svg.getAttribute('height');
+  var barWidth = (width - 40) / years.length;
+  svg.innerHTML = '';
+  var scaleY = height / (maxVal + 5);
+  years.forEach((year, i) => {
+    var val = yearCounts[year];
+    var barHeight = val * scaleY;
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', 20 + i * barWidth + 1);
+    rect.setAttribute('y', height - barHeight - 20);
+    rect.setAttribute('width', barWidth - 2);
+    rect.setAttribute('height', barHeight);
+    rect.setAttribute('class', 'bar');
+    svg.appendChild(rect);
+    // подпись года по оси X
+    var textYear = document.createElementNS('http://www.w3.org/2000/svg','text');
+    textYear.setAttribute('x', 20 + i * barWidth + barWidth/2);
+    textYear.setAttribute('y', height - 5);
+    textYear.setAttribute('text-anchor', 'middle');
+    textYear.textContent = year;
+    svg.appendChild(textYear);
+  });
+}
+
+function drawAgeChart(data) {
+  // Распределение по возрастным группам
+  var groups = { '<30': 0, '30-39': 0, '40-49': 0, '50-59': 0, '60+': 0 };
+  data.forEach(p => {
+    if (!p.birth_year || !p.arrest_year) return;
+    var age = p.arrest_year - p.birth_year;
+    if (age < 30) groups['<30']++;
+    else if (age < 40) groups['30-39']++;
+    else if (age < 50) groups['40-49']++;
+    else if (age < 60) groups['50-59']++;
+    else groups['60+']++;
+  });
+  var categories = Object.keys(groups);
+  var maxVal = Math.max(...Object.values(groups));
+  var svg = document.getElementById('ageChart');
+  var width = svg.getAttribute('width'), height = svg.getAttribute('height');
+  var barWidth = (width - 40) / categories.length;
+  svg.innerHTML = '';
+  var scaleY = height / (maxVal + 5);
+  categories.forEach((cat, i) => {
+    var val = groups[cat];
+    var barHeight = val * scaleY;
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', 20 + i * barWidth + 10);
+    rect.setAttribute('y', height - barHeight - 20);
+    rect.setAttribute('width', barWidth - 20);
+    rect.setAttribute('height', barHeight);
+    rect.setAttribute('class', 'bar');
+    svg.appendChild(rect);
+    var textVal = document.createElementNS('http://www.w3.org/2000/svg','text');
+    textVal.setAttribute('x', 20 + i * barWidth + barWidth/2);
+    textVal.setAttribute('y', height - barHeight - 25);
+    textVal.setAttribute('text-anchor', 'middle');
+    textVal.textContent = val;
+    svg.appendChild(textVal);
+    var textCat = document.createElementNS('http://www.w3.org/2000/svg','text');
+    textCat.setAttribute('x', 20 + i * barWidth + barWidth/2);
+    textCat.setAttribute('y', height - 5);
+    textCat.setAttribute('text-anchor', 'middle');
+    textCat.textContent = cat;
+    svg.appendChild(textCat);
+  });
+}
+
+// Функция фильтрации данных согласно текущим настройкам фильтров
+function getFilteredData() {
+  var startYear = +document.getElementById('yearStart').value;
+  var endYear = +document.getElementById('yearEnd').value;
+  var selectedRanks = Array.from(document.querySelectorAll('.rank-checkbox:checked')).map(cb => cb.value);
+  var placeFilter = document.getElementById('placeSelect').value;
+  var selectedSentences = Array.from(document.querySelectorAll('.sentence-checkbox:checked')).map(cb => cb.value);
+  return persons.filter(p => {
+    // фильтр по году
+    if (p.arrest_year) {
+      if (p.arrest_year < startYear || p.arrest_year > endYear) return false;
+    }
+    // фильтр по званию (проверяем вхождение подстроки)
+    var rankMatch = selectedRanks.some(rk => p.rank && p.rank.indexOf(rk) !== -1);
+    if (!rankMatch) return false;
+    // фильтр по месту
+    if (placeFilter !== 'all') {
+      var placeMatch = false;
+      if (p.repression_place && p.repression_place.indexOf(placeFilter) !== -1) placeMatch = true;
+      if (p.service_place && p.service_place.indexOf(placeFilter) !== -1) placeMatch = true;
+      if (!placeMatch) return false;
+    }
+    // фильтр по приговору
+    if (!selectedSentences.includes(p.sentence_type)) return false;
+    return true;
+  });
+}
+
+// Инициализация: применяем исходные фильтры ко всем данным
+var filteredData = getFilteredData();
+updateMap(filteredData);
+drawSentenceChart(filteredData);
+drawTimelineChart(filteredData);
+drawAgeChart(filteredData);
+
+// Обработчики событий изменения фильтров
+document.getElementById('yearStart').addEventListener('change', () => {
+  if (+yearStart.value > +yearEnd.value) yearStart.value = yearEnd.value;
+  filteredData = getFilteredData();
+  updateMap(filteredData);
+  drawTimelineChart(filteredData);
+  drawAgeChart(filteredData);
+});
+document.getElementById('yearEnd').addEventListener('change', () => {
+  if (+yearEnd.value < +yearStart.value) yearEnd.value = yearStart.value;
+  filteredData = getFilteredData();
+  updateMap(filteredData);
+  drawTimelineChart(filteredData);
+  drawAgeChart(filteredData);
+});
+document.querySelectorAll('.rank-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    filteredData = getFilteredData();
+    updateMap(filteredData);
+    // все графики могут измениться, пересчитываем
+    drawSentenceChart(filteredData);
+    drawTimelineChart(filteredData);
+    drawAgeChart(filteredData);
+  });
+});
+document.getElementById('placeSelect').addEventListener('change', () => {
+  filteredData = getFilteredData();
+  updateMap(filteredData);
+  drawSentenceChart(filteredData);
+  drawTimelineChart(filteredData);
+  drawAgeChart(filteredData);
+});
+document.querySelectorAll('.sentence-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    filteredData = getFilteredData();
+    updateMap(filteredData);
+    drawSentenceChart(filteredData);
+    // остальные графики не меняются от фильтра типа приговора, кроме чисел на них, но для простоты пересчитаем
+    drawTimelineChart(filteredData);
+    drawAgeChart(filteredData);
+  });
+});

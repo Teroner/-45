@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Карта репрессированных (Тамбовская обл. 1930–1938)</title>
+  <!-- Подключаем стили -->
+  <link rel="stylesheet" href="leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Панель фильтров -->
+  <div id="controls">
+    <div class="filter-group">
+      <label for="yearStart">Год ареста от:</label>
+      <input type="number" id="yearStart" value="1930" min="1930" max="1938" />
+      <label for="yearEnd">до:</label>
+      <input type="number" id="yearEnd" value="1938" min="1930" max="1938" />
+    </div>
+    <div class="filter-group">
+      <span>Звание:</span>
+      <!-- чекбоксы по церковным званиям -->
+      <label><input type="checkbox" class="rank-checkbox" value="мирянин" checked />миряне</label>
+      <label><input type="checkbox" class="rank-checkbox" value="свящ" checked />священнослужители</label>
+      <label><input type="checkbox" class="rank-checkbox" value="монах" checked />монашествующие</label>
+      <!-- (учитываем подстроку, например "монах" будет соответствовать "монахиня", "иеромонах" и т.д.) -->
+    </div>
+    <div class="filter-group">
+      <label>Место репрессии:</label>
+      <select id="placeSelect">
+        <option value="all">– все –</option>
+        <option value="Тамбов">г.Тамбов</option>
+        <option value="Мичуринск">г.Мичуринск</option>
+        <option value="Моршанск">г.Моршанск</option>
+        <option value="Кирсанов">г.Кирсанов</option>
+        <option value="Рассказово">г.Рассказово</option>
+        <option value="Уварово">г.Уварово</option>
+        <option value="Инжавин">Инжавинский р-н</option>
+        <option value="Жердев">Жердевский р-н</option>
+        <option value="Первомайс">Первомайский р-н</option>
+        <option value="Сосновс">Сосновский р-н</option>
+        <!-- ...другие при необходимости... -->
+      </select>
+    </div>
+    <div class="filter-group">
+      <span>Приговор:</span>
+      <label><input type="checkbox" class="sentence-checkbox" value="Расстрел" checked />расстрел</label>
+      <label><input type="checkbox" class="sentence-checkbox" value="Лагерь" checked />лагерь/ссылка</label>
+      <label><input type="checkbox" class="sentence-checkbox" value="Прочие" checked />прочие</label>
+    </div>
+  </div>
+
+  <!-- Основной контейнер: карта и блок с графиками -->
+  <div id="main">
+    <div id="map"></div>
+    <div id="sidebar">
+      <div id="charts">
+        <!-- Диаграммы будут отрисованы скриптом -->
+        <svg id="sentenceChart" width="300" height="200"></svg>
+        <svg id="timelineChart" width="300" height="200"></svg>
+        <svg id="ageChart" width="300" height="200"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Подключаем скрипты -->
+  <script src="leaflet.js"></script>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
